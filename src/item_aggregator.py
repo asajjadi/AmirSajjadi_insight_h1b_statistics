@@ -13,26 +13,31 @@ class ItemAggregator:
         :return: a list of tuples
         """
         all_items_dic = dict()
-        with open(path, newline='') as csvfile:
+        with open(path) as csvfile:
             file_reader = csv.reader(csvfile, delimiter=';')
             row_num = 0
             item_index = -1
+            status_index = -1
             for row in file_reader:
                 if row_num == 0:
                     for i in range(len(row)):
-                        if row[i].lower().find(search_item.lower()) != -1:
+                        # find the index of search item among a possible array, the array 'search_item' can be exteneded
+                        if sum([row[i].lower().find(item.lower()) != -1 for item in search_item]) > 0:
                             item_index = i
+                        elif row[i].lower().find("status") != -1: # we dont know the column number of status either
+                            status_index = i
                 else:
-                    val = all_items_dic.get(row[item_index])
-                    if val is None:
-                        all_items_dic[row[item_index]] = 1
-                    else:
-                        all_items_dic[row[item_index]] = val + 1
+                    if row[status_index].lower() == "certified":
+                        val = all_items_dic.get(row[item_index])
+                        if val is None:
+                            all_items_dic[row[item_index]] = 1
+                        else:
+                            all_items_dic[row[item_index]] = val + 1
 
                 row_num += 1
 
             row_num -= 1
-            return sorted(all_items_dic.items(), key=lambda kv: kv[1], reverse=True)
+            return sorted(all_items_dic.items(), key=lambda kv: (-kv[1], kv[0]), reverse=False)
 
     @classmethod
     def save_n_frequent_item(cls, items_dic, file_name, n, search_item):
@@ -63,8 +68,8 @@ if __name__ == '__main__':
 
     code, input_path, output_path1, output_path2 = sys.argv
 
-    res = ItemAggregator.get_n_item(input_path, "JOB_TITLE")
+    res = ItemAggregator.get_n_item(input_path, ["SOC_NAME"])
     ItemAggregator.save_n_frequent_item(res, output_path1, 10, "OCCUPATIONS")
 
-    res = ItemAggregator.get_n_item(input_path, "EMPLOYER_STATE")
+    res = ItemAggregator.get_n_item(input_path, ["WORKSITE_STATE","WORKLOC1_STATE"])
     ItemAggregator.save_n_frequent_item(res, output_path2, 10, "STATES")
